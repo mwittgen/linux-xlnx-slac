@@ -1371,7 +1371,12 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
 	zynq-zturn.dtb \
 	zynq-zturn-v5.dtb \
 	zynq-zybo.dtb \
-	zynq-zybo-z7.dtb
+        zynq-zybo-z7.dtb \
+        zynq-rce-ramdisk.dtb \
+        zynq-rce-10gaxi.dtb \
+        zynq-hsio2.dtb \
+        zynq-cob.dtb
+
 dtb-$(CONFIG_MACH_ARMADA_370) += \
 	armada-370-db.dtb \
 	armada-370-dlink-dns327l.dtb \

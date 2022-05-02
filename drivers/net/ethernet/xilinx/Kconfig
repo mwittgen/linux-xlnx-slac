@@ -16,6 +16,12 @@ config NET_VENDOR_XILINX
 
 if NET_VENDOR_XILINX
 
+config XILINX_XAUI_EMAC
+	tristate "Xilinx/SLAC Xaui/AXI Ethernet support"
+	depends on (ARCH_ZYNQ || ARCH_ZYNQMP )
+	help
+	  This driver supports the 10G Xaui/AXI Ethernet core from SLAC/Xilinx.
+
 config XILINX_EMACLITE
 	tristate "Xilinx 10/100 Ethernet Lite support"
 	depends on HAS_IOMEM

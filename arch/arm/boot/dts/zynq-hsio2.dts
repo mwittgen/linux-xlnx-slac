@@ -1,0 +1,220 @@
+/*
+ *  Copyright (C) 2011 - 2014 Xilinx
+ *  Copyright (C) 2012 National Instruments Corp.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+/dts-v1/;
+/include/ "zynq-7000.dtsi"
+
+/ {
+	model = "SLAC Zynq RCE";
+	compatible = "xlnx,zynq-rce", "xlnx,zynq-7000";
+
+	aliases {
+		ethernet0 = &gem0;
+		ethernet1 = &gem1;
+		i2c0 = &i2c0;
+		serial0 = &uart1;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x40000000>;
+	};
+	chosen {
+		bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p3 rootwait rw earlyprintk";
+		linux,stdout-path = "/amba/serial@e0001000";
+	};
+
+	usb_phy0: phy0 {
+		compatible = "usb-nop-xceiv";
+		#phy-cells = <0>;
+	};
+
+	
+
+
+    amba {
+         axi_stream_dma_0@60000000 {
+            compatible = "axi_stream_dma";
+            reg = <0x60000000 0x20000>;
+            interrupts = <0x0 56 0x4>;
+            interrupt-parent = <0x1>;
+            slac,acp = <0x0>;
+         };
+
+         axi_stream_dma_1@60020000 {
+            compatible = "axi_stream_dma";
+            reg = <0x60020000 0x20000>;
+            interrupts = <0x0 57 0x4>;
+            interrupt-parent = <0x1>;
+            slac,acp = <0x0>;
+         };
+
+         axi_stream_dma_2@60040000 {
+            compatible = "axi_stream_dma";
+            reg = <0x60040000 0x20000>;
+            interrupts = <0x0 58 0x4>;
+            interrupt-parent = <0x1>;
+            slac,acp = <0x1>;
+         };
+      };
+    
+};
+
+&gem0 {
+    // device tree refs :
+    //
+    // <kernel>/Documentation/devicetree/bindings/net/phy.txt
+    // <kernel>/Documentation/devicetree/bindings/net/xilinx_gmii2rgmii.txt
+    // <kernel>/Documentation/devicetree/bindings/net/ethernet.txt
+    // <kernel>/Documentation/devicetree/bindings/net/macb.txt
+    //
+    // driver files : macb.c, xilinx_gmii2rgmii.c (these 2 files replace xilinx_emapcs.c)
+    // also interesting to check : marvell.c, of_mdio.c, of_net.c
+  
+    //
+    local-mac-address = [00 0a 35 00 00 01];
+  
+    // handles to the physical phy and gmmii2rgmii
+    phy-handle = <&phy0>;
+    gmii2rgmii-phy-handle = <&gmii_to_rgmii_0>;
+  
+    // GEM1 operates in gmii mode when using EMIO
+    phy-mode = "gmii";
+  
+    status = "okay";
+  
+    // deprecated, was used by xilinx_emacps.c driver
+    //xlnx,has-mdio = <0x1>;
+  
+    ps7_ethernet_1_mdio: mdio {
+        #address-cells = <1>;
+        #size-cells = <0>;
+  
+        phy0: phy@0 {
+            // note : board contains 88e1512, but marvell.c driver only contains 88e1510
+            // 'compatible' for phy's is deprecated, see <kernel>/drivers/of/of_mdio.c, and AR# 68095
+            // however for use in QEMU, you still need to add the compatible string !!!
+            // if enabled, the warning 'whitelisted compatible string' can be ignored
+            // compatible = "marvell,88e1510";
+  
+            device_type = "ethernet-phy";
+  
+            // phy address = '0' (using the broadcast addr is actually not good, but it's what it is)
+            reg = <7>;
+        };
+  
+        gmii_to_rgmii_0: phy@8 {
+            // dts bindings : <kernel>/Documentation/devicetree/bindings/net/xilinx_gmii2rgmii.txt
+            // use drivers/net/phy/xilinx_gmii2rgmii.c
+            compatible = "xlnx,gmii-to-rgmii-1.0";
+  
+            // gmii2rgmii speed config reg is at phy addr '8' (this addr is set in Vivado during
+            // ip config)
+            reg = <8>;
+  
+            // provide a handle to the corresponding physical phy, the driver needs to know
+            // the phy to get the actual link speed from, and update gmii2rgmii IP accordingliy
+            phy-handle = <&phy0>;
+        };
+    };
+};
+
+&gem1 {
+        status = "disabled";	
+};
+
+
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	i2cswitch@74 {
+		compatible = "nxp,pca9548";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x74>;
+
+		i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+			si570: clock-generator@5d {
+				#clock-cells = <0>;
+				compatible = "silabs,si570";
+				temperature-stability = <50>;
+				reg = <0x5d>;
+				factory-fout = <156250000>;
+				clock-frequency = <148500000>;
+			};
+		};
+
+		i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+			eeprom@54 {
+				compatible = "at,24c08";
+				reg = <0x54>;
+			};
+		};
+
+		i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+			gpio@21 {
+				compatible = "ti,tca6416";
+				reg = <0x21>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+		};
+
+		i2c@4 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <4>;
+			rtc@51 {
+				compatible = "nxp,pcf8563";
+				reg = <0x51>;
+			};
+		};
+
+		i2c@7 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <7>;
+			ucd90120@65 {
+				compatible = "ti,ucd90120";
+				reg = <0x65>;
+			};
+		};
+	};
+};
+
+&sdhci0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&usb0 {
+	status = "okay";
+	dr_mode = "host";
+	phy_type = "ulpi";
+	usb-phy = <&usb_phy0>;
+};
+
